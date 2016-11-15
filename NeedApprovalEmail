@@ -1,0 +1,78 @@
+Erp.Tables.POApvMsg POApvMsg;
+Erp.Tables.PurAgent PurAgent;
+Erp.Tables.Vendor Vendor;
+string approval = string.Empty;
+string strLineDesc = string.Empty;
+string strVendorName = string.Empty;
+//BPM Method
+foreach (var ttPOHeaderResults in (from ttPOHeaderRow in ds.POHeader
+								   where ttPOHeaderRow.Company == Session.CompanyID
+									  && ttPOHeaderRow.ApprovalStatus == "P"
+								   select ttPOHeaderRow))
+{
+	/*Get Line Description BEGIN*/
+	foreach (var ttPODetailResults in (from ttPODetailRow in Db.PODetail
+									   where ttPODetailRow.Company == Session.CompanyID
+										  && ttPODetailRow.PONUM == ttPOHeaderResults.PONum
+									   select ttPODetailRow))
+	{
+		if (String.IsNullOrEmpty(strLineDesc))
+		{
+			strLineDesc = Convert.ToString(ttPODetailResults.POLine) + ". " + ttPODetailResults.LineDesc + ", Qty: " + String.Format("{0:0}",ttPODetailResults.OrderQty) + ", Unit Price: " + String.Format("{0:0.00}",ttPODetailResults.UnitCost) + ", Cost: " + String.Format("{0:0.00}",ttPODetailResults.OrderQty * ttPODetailResults.UnitCost);
+		}
+		else
+		{
+			strLineDesc = strLineDesc + "\n" + Convert.ToString(ttPODetailResults.POLine) + ". " + ttPODetailResults.LineDesc + ", Qty: " + String.Format("{0:0}", ttPODetailResults.OrderQty) + ", Unit Price: " + String.Format("{0:0.00}", ttPODetailResults.UnitCost) + ", Cost: " + String.Format("{0:0.00}", ttPODetailResults.OrderQty * ttPODetailResults.UnitCost);
+		}
+	}
+	/*Get Line Description END*/
+
+	/*Get Supplier Name BEGIN*/
+	Vendor = (from VendorRow in Db.Vendor
+			  where VendorRow.Company == Session.CompanyID
+				 && VendorRow.VendorNum == ttPOHeaderResults.VendorNum
+			  select VendorRow).FirstOrDefault();
+	if (Vendor != null)
+	{
+		strVendorName = Vendor.Name;
+	}
+	/*Get Supplier Name END*/
+
+	POApvMsg = (from POApvMsgRow in Db.POApvMsg
+				where POApvMsgRow.Company == Session.CompanyID
+				   && POApvMsgRow.PONum == ttPOHeaderResults.PONum
+				orderby POApvMsgRow.PONum descending
+				select POApvMsgRow).First();
+	if (POApvMsg != null)
+	{
+		approval = POApvMsg.MsgTo;
+	}
+
+	PurAgent = (from PurAgentRow in Db.PurAgent
+				where PurAgentRow.Company == Session.CompanyID
+				   && PurAgentRow.BuyerID == approval
+				select PurAgentRow).FirstOrDefault();
+	if (PurAgent != null)
+	{
+		if (PurAgent.EMailAddress != null)
+		{
+			POApvMsg = (from POApvMsgRow in Db.POApvMsg
+						where POApvMsgRow.Company == Session.CompanyID
+							&& POApvMsgRow.PONum == ttPOHeaderResults.PONum
+						select POApvMsgRow).FirstOrDefault();
+			if (POApvMsg != null)
+			{
+				if (strLineDesc != null)
+				{
+					var mailer = GetMailer(async: true);
+					var message = new Ice.Mail.SmtpMail();
+					message.SetFrom("epicor@ppsvcs.com");
+					message.SetTo(PurAgent.EMailAddress);
+					message.SetSubject(Session.CompanyID + " Purchase Order needs Approval: " + ttPOHeaderResults.PONum + " Ordered By: " + ttPOHeaderResults.BuyerIDName);
+					message.SetBody("PO: " + Convert.ToString(ttPOHeaderResults.PONum) + "\nSupplier: " + strVendorName + "\n\n" + strLineDesc);
+					mailer.Send(message);                                
+				} /*End strLineDesc*/
+			} /*End if POApvMsg*/
+		} /*End PurAgent.EmailAddress*/
+	} /*End PurAgent*/
+} /*End foreach*/
