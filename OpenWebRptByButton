@@ -1,0 +1,17 @@
+private void epiButtonC1_Click(object sender, System.EventArgs args)
+	{
+	
+		// ** Place Event Handling Code Here **
+	EpiDataView edv = (EpiDataView)oTrans.EpiDataViews["DMRCorAct"];
+		var qt = edv.dataView[edv.Row]["ActionID"];
+	
+			if (!String.IsNullOrEmpty(qt.ToString()))
+			{
+				ProcessStartInfo sInfo = new ProcessStartInfo("IEXPLORE.EXE","-nomerge http://server/ReportServer?/reports/CustomReports/report/CorrectiveAction&ActionID=" + qt.ToString());
+				Process.Start(sInfo);
+			}
+			else
+			{
+				MessageBox.Show("Enter Action Number!");
+			}	
+	}
