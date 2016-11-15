@@ -66,7 +66,7 @@ foreach (var ttPOHeaderResults in (from ttPOHeaderRow in ds.POHeader
 				{
 					var mailer = GetMailer(async: true);
 					var message = new Ice.Mail.SmtpMail();
-					message.SetFrom("epicor@ppsvcs.com");
+					message.SetFrom("xxx@sender.com");
 					message.SetTo(PurAgent.EMailAddress);
 					message.SetSubject(Session.CompanyID + " Purchase Order needs Approval: " + ttPOHeaderResults.PONum + " Ordered By: " + ttPOHeaderResults.BuyerIDName);
 					message.SetBody("PO: " + Convert.ToString(ttPOHeaderResults.PONum) + "\nSupplier: " + strVendorName + "\n\n" + strLineDesc);
