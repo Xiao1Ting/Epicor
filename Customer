@@ -1,0 +1,385 @@
+// **************************************************
+// Custom code for CustomerEntryForm
+// Updated: 3/13/2019 2:50:41 PM
+// **************************************************
+using System;
+using System.ComponentModel;
+using System.Data;
+using System.Diagnostics;
+using System.Windows.Forms;
+using Ice.Lib;
+using Erp.BO;
+using Ice.BO;
+using Erp.UI;
+using Ice.Adapters;
+using Erp.Adapters;
+using Ice.Lib.Customization;
+using Ice.Lib.ExtendedProps;
+using Ice.UI.FormFunctions;
+using Ice.Lib.Framework;
+using Ice.Lib.Searches;
+
+public class Script
+{
+	// ** Wizard Insert Location - Do Not Remove 'Begin/End Wizard Added Module Level Variables' Comments! **
+	// Begin Wizard Added Module Level Variables **
+
+	private UD01Adapter _ud01Adapter;
+	private EpiDataView _edvCustomer;
+	private EpiDataView _edvUD01;
+	private string _Key1UD01;
+	private string _Key2UD01;
+	private string _Key3UD01;
+	private string _Key4UD01;
+	private string _Key5UD01;
+	private DataView Customer_DataView;
+
+
+	// End Wizard Added Module Level Variables **
+
+	// Add Custom Module Level Variables Here **
+
+	public void InitializeCustomCode()
+	{
+		// ** Wizard Insert Location - Do not delete 'Begin/End Wizard Added Variable Initialization' lines **
+		// Begin Wizard Added Variable Initialization
+
+		this._Key1UD01 = string.Empty;
+		this._Key2UD01 = string.Empty;
+		this._Key3UD01 = string.Empty;
+		this._Key4UD01 = string.Empty;
+		this._Key5UD01 = string.Empty;
+		this.baseToolbarsManager.ToolClick += new Infragistics.Win.UltraWinToolbars.ToolClickEventHandler(this.baseToolbarsManager_ToolClickForUD01);
+		this.CustomerEntryForm.BeforeToolClick += new Ice.Lib.Framework.BeforeToolClickEventHandler(this.CustomerEntryForm_BeforeToolClickForUD01);
+		this.Customer_Row.EpiRowChanged += new EpiRowChanged(this.Customer_AfterRowChangeForUD01);
+		this.Customer_DataView = this.Customer_Row.dataView;
+		this.Customer_DataView.ListChanged += new ListChangedEventHandler(this.Customer_DataView_ListChangedForUD01);
+		// End Wizard Added Variable Initialization
+
+		// Begin Wizard Added Custom Method Calls
+
+		InitializeUD01Adapter();
+		this.epiUltraGridC1.KeyDown += new System.Windows.Forms.KeyEventHandler(this.epiUltraGridC1_KeyDown);
+		this.epiUltraGridC1.BeforeRowsDeleted += new Infragistics.Win.UltraWinGrid.BeforeRowsDeletedEventHandler(this.epiUltraGridC1_BeforeRowsDeleted);
+		this.epiUltraGridC1.BeforeRowInsert += new Infragistics.Win.UltraWinGrid.BeforeRowInsertEventHandler(this.epiUltraGridC1_BeforeRowInsert);
+		// End Wizard Added Custom Method Calls
+	}
+
+	public void DestroyCustomCode()
+	{
+		// ** Wizard Insert Location - Do not delete 'Begin/End Wizard Added Object Disposal' lines **
+		// Begin Wizard Added Object Disposal
+
+		if ((this._ud01Adapter != null))
+		{
+			this._ud01Adapter.Dispose();
+			this._ud01Adapter = null;
+		}
+		this._edvUD01 = null;
+		this._edvCustomer = null;
+		this._Key1UD01 = null;
+		this._Key2UD01 = null;
+		this._Key3UD01 = null;
+		this._Key4UD01 = null;
+		this._Key5UD01 = null;
+		this.baseToolbarsManager.ToolClick -= new Infragistics.Win.UltraWinToolbars.ToolClickEventHandler(this.baseToolbarsManager_ToolClickForUD01);
+		this.CustomerEntryForm.BeforeToolClick -= new Ice.Lib.Framework.BeforeToolClickEventHandler(this.CustomerEntryForm_BeforeToolClickForUD01);
+		this.Customer_Row.EpiRowChanged -= new EpiRowChanged(this.Customer_AfterRowChangeForUD01);
+		this.Customer_DataView.ListChanged -= new ListChangedEventHandler(this.Customer_DataView_ListChangedForUD01);
+		this.Customer_DataView = null;
+		this.epiUltraGridC1.KeyDown -= new System.Windows.Forms.KeyEventHandler(this.epiUltraGridC1_KeyDown);
+		this.epiUltraGridC1.BeforeRowsDeleted -= new Infragistics.Win.UltraWinGrid.BeforeRowsDeletedEventHandler(this.epiUltraGridC1_BeforeRowsDeleted);
+		this.epiUltraGridC1.BeforeRowInsert -= new Infragistics.Win.UltraWinGrid.BeforeRowInsertEventHandler(this.epiUltraGridC1_BeforeRowInsert);
+		// End Wizard Added Object Disposal
+
+		// Begin Custom Code Disposal
+
+		// End Custom Code Disposal
+	}
+
+	private void InitializeUD01Adapter()
+	{
+		// Create an instance of the Adapter.
+		this._ud01Adapter = new UD01Adapter(this.oTrans);
+		this._ud01Adapter.BOConnect();
+
+		// Add Adapter Table to List of Views
+		// This allows you to bind controls to the custom UD Table
+		this._edvUD01 = new EpiDataView();
+		this._edvUD01.dataView = new DataView(this._ud01Adapter.UD01Data.UD01);
+		this._edvUD01.AddEnabled = true;
+		this._edvUD01.AddText = "New Unit";
+		if ((this.oTrans.EpiDataViews.ContainsKey("UD01View") == false))
+		{
+			this.oTrans.Add("UD01View", this._edvUD01);
+		}
+
+		// Initialize EpiDataView field.
+		this._edvCustomer = ((EpiDataView)(this.oTrans.EpiDataViews["Customer"]));
+
+		// Set the parent view / keys for UD child view
+		string[] parentKeyFields = new string[1];
+		string[] childKeyFields = new string[1];
+		parentKeyFields[0] = "CustNum";
+		childKeyFields[0] = "Key1";
+		this._edvUD01.SetParentView(this._edvCustomer, parentKeyFields, childKeyFields);
+
+		if ((this.oTrans.PrimaryAdapter != null))
+		{
+			// this.oTrans.PrimaryAdapter.GetCurrentDataSet(Ice.Lib.Searches.DataSetMode.RowsDataSet).Tables.Add(this._edvUD01.dataView.Table.Clone())
+		}
+
+	}
+
+	private void GetUD01Data(string key1, string key2, string key3, string key4, string key5)
+	{
+		if ((this._Key1UD01 != key1) || (this._Key2UD01 != key2) || (this._Key3UD01 != key3) || (this._Key4UD01 != key4) || (this._Key5UD01 != key5))
+		{
+			// Build where clause for search.
+			string whereClause = "Key1 = \'" + key1 + "\' And Key2 = \'" + key2 + "\' And Key3 = \'" + key3 + "\' And Key4 = \'" + key4 + "\'";
+			System.Collections.Hashtable whereClauses = new System.Collections.Hashtable(1);
+			whereClauses.Add("Unit", whereClause);
+
+			// Call the adapter search.
+			SearchOptions searchOptions = SearchOptions.CreateRuntimeSearch(whereClauses, DataSetMode.RowsDataSet);
+			this._ud01Adapter.InvokeSearch(searchOptions);
+
+			if ((this._ud01Adapter.UD01Data.UD01.Rows.Count > 0))
+			{
+				this._edvUD01.Row = 0;
+			} else
+			{
+				this._edvUD01.Row = -1;
+			}
+
+			// Notify that data was updated.
+			this._edvUD01.Notify(new EpiNotifyArgs(this.oTrans, this._edvUD01.Row, this._edvUD01.Column));
+
+			// Set key fields to their new values.
+			this._Key1UD01 = key1;
+			this._Key2UD01 = key2;
+			this._Key3UD01 = key3;
+			this._Key4UD01 = key4;
+			this._Key5UD01 = key5;
+		}
+
+	}
+
+	private void GetNewUD01Record()
+	{
+		DataRow parentViewRow = this._edvCustomer.CurrentDataRow;
+		// Check for existence of Parent Row.
+		if ((parentViewRow == null))
+		{
+			return;
+		}
+		if (this._ud01Adapter.GetaNewUD01())
+		{
+			string custnum = parentViewRow["CustNum"].ToString();
+
+			// Get unique row count id for Key5
+			int rowCount = this._ud01Adapter.UD01Data.UD01.Rows.Count;
+			int lineNum = rowCount;
+			bool goodIndex = false;
+			while ((goodIndex == false))
+			{
+				// Check to see if index exists
+				DataRow[] matchingRows = this._ud01Adapter.UD01Data.UD01.Select("Key5 = \'" + lineNum.ToString() + "\'");
+				if ((matchingRows.Length > 0))
+				{
+					lineNum = (lineNum + 1);
+				} else
+				{
+					goodIndex = true;
+				}
+			}
+
+			// Set initial UD Key values
+			DataRow editRow = this._ud01Adapter.UD01Data.UD01.Rows[(rowCount - 1)];
+			editRow.BeginEdit();
+			editRow["Key1"] = custnum;
+			editRow["Key2"] = string.Empty;
+			editRow["Key3"] = string.Empty;
+			editRow["Key4"] = string.Empty;
+			editRow["Key5"] = lineNum.ToString();
+			editRow.EndEdit();
+
+			// Notify that data was updated.
+			this._edvUD01.Notify(new EpiNotifyArgs(this.oTrans, (rowCount - 1), this._edvUD01.Column));
+		}
+	}
+
+	private void SaveUD01Record()
+	{
+		// Save adapter data
+		this._ud01Adapter.Update();
+	}
+
+	private void DeleteUD01Record()
+	{
+		// Check to see if deleted view is ancestor view
+		bool isAncestorView = false;
+		Ice.Lib.Framework.EpiDataView parView = this._edvUD01.ParentView;
+		while ((parView != null))
+		{
+			if ((this.oTrans.LastView == parView))
+			{
+				isAncestorView = true;
+				break;
+			} else
+			{
+				parView = parView.ParentView;
+			}
+		}
+
+		// If Ancestor View then delete all child rows
+		if (isAncestorView)
+		{
+			DataRow[] drsDeleted = this._ud01Adapter.UD01Data.UD01.Select("Key1 = \'" + this._Key1UD01 + "\' AND Key2 = \'" + this._Key2UD01 + "\' AND Key3 = \'" + this._Key3UD01 + "\' AND Key4 = \'" + this._Key4UD01 + "\'");
+			for (int i = 0; (i < drsDeleted.Length); i = (i + 1))
+			{
+				this._ud01Adapter.Delete(drsDeleted[i]);
+			}
+		} else
+		{
+			if ((this.oTrans.LastView == this._edvUD01))
+			{
+				if ((this._edvUD01.Row >= 0))
+				{
+					DataRow drDeleted = ((DataRow)(this._ud01Adapter.UD01Data.UD01.Rows[this._edvUD01.Row]));
+					if ((drDeleted != null))
+					{
+						if (this._ud01Adapter.Delete(drDeleted))
+						{
+							if ((_edvUD01.Row > 0))
+							{
+								_edvUD01.Row = (_edvUD01.Row - 1);
+							}
+
+							// Notify that data was updated.
+							this._edvUD01.Notify(new EpiNotifyArgs(this.oTrans, this._edvUD01.Row, this._edvUD01.Column));
+						}
+					}
+				}
+			}
+		}
+	}
+
+	private void UndoUD01Changes()
+	{
+		this._ud01Adapter.UD01Data.RejectChanges();
+
+		// Notify that data was updated.
+		this._edvUD01.Notify(new EpiNotifyArgs(this.oTrans, this._edvUD01.Row, this._edvUD01.Column));
+	}
+
+	private void ClearUD01Data()
+	{
+		this._Key1UD01 = string.Empty;
+		this._Key2UD01 = string.Empty;
+		this._Key3UD01 = string.Empty;
+		this._Key4UD01 = string.Empty;
+		this._Key5UD01 = string.Empty;
+
+		this._ud01Adapter.UD01Data.Clear();
+
+		// Notify that data was updated.
+		this._edvUD01.Notify(new EpiNotifyArgs(this.oTrans, this._edvUD01.Row, this._edvUD01.Column));
+	}
+
+	private void baseToolbarsManager_ToolClickForUD01(object sender, Infragistics.Win.UltraWinToolbars.ToolClickEventArgs args)
+	{
+		// EpiMessageBox.Show(args.Tool.Key);
+		switch (args.Tool.Key)
+		{
+			case "EpiAddNewNew Unit":
+				GetNewUD01Record();
+				break;
+	
+			case "ClearTool":
+				ClearUD01Data();
+				break;
+	
+			case "DeleteTool":
+				DeleteUD01Record();
+				break;
+	
+			case "UndoTool":
+				UndoUD01Changes();
+				break;
+		}
+	}
+
+	private void CustomerEntryForm_BeforeToolClickForUD01(object sender, Ice.Lib.Framework.BeforeToolClickEventArgs args)
+	{
+		// EpiMessageBox.Show(args.Tool.Key);
+		switch (args.Tool.Key)
+		{
+			case "SaveTool":
+				SaveUD01Record();
+				break;
+		}
+	}
+
+	private void Customer_AfterRowChangeForUD01(EpiRowChangedArgs args)
+	{
+		// ** add AfterRowChange event handler
+		string custnum = args.CurrentView.dataView[args.CurrentRow]["CustNum"].ToString();
+		GetUD01Data(custnum, string.Empty, string.Empty, string.Empty, string.Empty);
+	}
+
+	private void Customer_DataView_ListChangedForUD01(object sender, ListChangedEventArgs args)
+	{
+		// ** add ListChanged event handler
+		string custnum = Customer_DataView[0]["CustNum"].ToString();
+		GetUD01Data(custnum, string.Empty, string.Empty, string.Empty, string.Empty);
+	}
+
+	private void epiUltraGridC1_KeyDown(object sender, System.Windows.Forms.KeyEventArgs args)
+	{
+		// Event handling code generated by wizard.
+		if ((args.KeyCode == Keys.Escape))
+		{
+			try
+			{
+				UndoUD01Changes();
+			} catch (System.Exception )
+			{
+			}
+		}
+	}
+
+	private void epiUltraGridC1_BeforeRowsDeleted(object sender, Infragistics.Win.UltraWinGrid.BeforeRowsDeletedEventArgs args)
+	{
+		// Event handling code generated by wizard.
+		args.Cancel = true;
+		try
+		{
+			DeleteUD01Record();
+		} catch (System.Exception )
+		{
+		}
+	}
+
+	private void epiUltraGridC1_BeforeRowInsert(object sender, Infragistics.Win.UltraWinGrid.BeforeRowInsertEventArgs args)
+	{
+		// Event handling code generated by wizard.
+		args.Cancel = true;
+		this.oTrans.SetCurrentEvent(TransactionEvent.AddNewOnNewFromGrid);
+		try
+		{
+			SaveUD01Record();
+			GetNewUD01Record();
+		} catch (System.Exception )
+		{
+		}
+	}
+
+	private void CustomerEntryForm_Load(object sender, EventArgs args)
+	{
+		// Add Event Handler Code
+	EpiUltraGrid myGrid = (EpiUltraGrid)csm.GetNativeControlReference("6eae7622-3412-4609-8f63-751abdca5f7a");
+	    myGrid.DisplayLayout.Bands[0].Columns["ShortChar07"].ValueList = epiComboC8;
+
+	}
+}
